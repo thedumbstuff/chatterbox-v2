@@ -6,7 +6,7 @@ Numbered so other pages and commit messages can reference them (G1, G2, ...). St
 
 | # | Severity | Status | Summary |
 |---|----------|--------|---------|
-| G1 | bug | open (**verified 2026-09-08**) | `ChatterboxTTS.generate(cfg_weight=0)` crashes with a batch-size mismatch |
+| G1 | bug | **fixed 2026-09-08** | `ChatterboxTTS.generate(cfg_weight=0)` crashed with a batch-size mismatch |
 | G2 | quirk | open | Llama inference feeds the BOS speech token twice |
 | G3 | maintenance | open | `punc_norm` and `Conditionals` are copy-pasted three times and have drifted |
 | G4 | API | open | Many accepted parameters are silently ignored |
@@ -29,7 +29,14 @@ Numbered so other pages and commit messages can reference them (G1, G2, ...). St
 
 ## Details
 
-### G1 - `cfg_weight=0` crashes in `ChatterboxTTS` **(verified 2026-09-08 with `tests/smoke_generate.py english --cfg 0.0`)**
+### G1 - `cfg_weight=0` crashed in `ChatterboxTTS` **(fixed 2026-09-08)**
+**Fix:** `T3.inference` now owns the CFG batching: with `cfg_weight > 0` it repeats a single text row
+into `[cond, uncond]`; with `cfg_weight == 0` it runs one row and skips the CFG mix. `bos_embed` and
+each step's token embedding are repeated to the actual batch `B`. `tts.py` and `mtl_tts.py` no longer
+duplicate tokens. Passing 2 rows with `cfg_weight > 0` is still accepted; any other batch shape raises
+`ValueError`. `tests/g1_equivalence.py` showed bit-identical token sequences vs the old code for
+cfg 0.5 and for cfg 0 (old batch-2 path vs new batch-1 path). Original description follows.
+
 Observed: `RuntimeError: Sizes of tensors must match except in dimension 1. Expected size 1 but got size 2 for tensor number 1 in the list.` at `t3.py` line 313 (`inputs_embeds = torch.cat([embeds, bos_embed], dim=1)`). Multilingual with `cfg_weight=0` generated fine.
 `tts.py` only duplicates the text tokens when `cfg_weight > 0`. `T3.inference` then builds
 `embeds` with batch 1 but unconditionally does `bos_embed = torch.cat([bos_embed, bos_embed])`

@@ -314,7 +314,7 @@ class ChatterboxMultilingualTTS:
         # Norm and tokenize text
         text = punc_norm(text)
         text_tokens = self.tokenizer.text_to_tokens(text, language_id=language_id.lower() if language_id else None).to(self.device)
-        text_tokens = torch.cat([text_tokens, text_tokens], dim=0)  # Need two seqs for CFG
+        # T3.inference builds the second (unconditional) row itself when cfg_weight > 0.
 
         sot = self.t3.hp.start_text_token
         eot = self.t3.hp.stop_text_token

@@ -40,3 +40,18 @@ Format: date, who/what, files, why, follow-ups.
 - Fix G1 (recipe E2). Decide whether to keep the double-BOS (G2) when doing so.
 - Hindi built-in-voice outputs peak at ~0.99: consider a soft limiter or checking `S3Gen` output gain.
 - Turn `tests/smoke_generate.py` into pytest cases (E15) once behaviour changes start.
+
+## 2026-09-08 - G1 fixed (cfg_weight=0 crash)
+
+- `src/chatterbox/models/t3/t3.py::T3.inference`: owns CFG batching now. `use_cfg = cfg_weight > 0`;
+  single text row is repeated to `[cond, uncond]` when `use_cfg`; batch 1 otherwise; `bos_embed` and
+  per-step embeddings use `.repeat(B, 1, 1)`; CFG mix only when `use_cfg`; clear `ValueError` for
+  unsupported batch shapes. Removed a duplicated `top_p_warper` construction.
+- `src/chatterbox/tts.py`, `src/chatterbox/mtl_tts.py`: removed caller-side token duplication.
+- Verification: `tests/g1_equivalence.py` -> token sequences bit-identical to the old code for
+  cfg 0.5 (batch 2) and cfg 0 (old batch-2 workaround vs new batch 1), temperature 0.05, seed 1234.
+  Smoke runs pass: english cfg 0 / 0.5 / 0.3+clone, mtl-v3 hi cfg 0 / 0.5, mtl-v3 en cfg 0.
+  Warm RTF english: cfg 0.5 -> 0.71, cfg 0 -> 0.65.
+- Left G2 (double BOS) untouched on purpose: equivalence would break otherwise.
+- Observation: english cfg 0 with the built-in voice peaked at 1.023 (clipping) on one run;
+  the near-clipping follow-up from the previous entry stands.

@@ -2,6 +2,7 @@
 
 <!-- Keep this list current: every change to this fork gets one line here. Details live in llm_wiki/changelog.md. -->
 
+- 2026-09-08: Fixed G1: `T3.inference` now builds the CFG row itself, so `cfg_weight=0` works for `ChatterboxTTS` and runs at batch 1; callers no longer duplicate text tokens (bit-identical outputs, `tests/g1_equivalence.py`).
 - 2026-09-08: Verified every variant runs on Windows + RTX 4090 (Python 3.12 venv); added `tests/smoke_generate.py`; confirmed bug G1 (`ChatterboxTTS.generate(cfg_weight=0)` crashes, multilingual is fine).
 - 2026-09-08: Added `llm_wiki/` knowledge base, `CLAUDE.md` files, and `venv/` ignore rules.
 

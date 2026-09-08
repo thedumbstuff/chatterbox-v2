@@ -26,6 +26,10 @@ timings, RTF, peak amplitude, and whether the Perth watermark is detected. Exit 
 Pass `--tag=-x` with `=` (argparse treats a leading `-` value as a flag otherwise).
 Project scope decision (user, 2026-09-08): **test only English and Hindi** for multilingual.
 
+`tests/g1_equivalence.py --label old|new` / `--compare`: calls `T3.inference` directly with
+near-greedy sampling (temperature 0.05, fixed seed) and saves token ids to `syn_out/g1_*.pt`, to
+prove a decoding-loop refactor is output-preserving. Reuse the pattern for future T3 changes.
+
 ## Gradio apps
 
 All use `gradio==6.8.0` (pinned in pyproject, imported as a hard dependency of the library

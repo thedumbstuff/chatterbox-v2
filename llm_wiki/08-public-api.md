@@ -22,7 +22,7 @@ attributes: sr=24000, t3, s3gen, ve, tokenizer (EnTokenizer), device, conds (Con
 class constants: ENC_COND_LEN = 6*16000, DEC_COND_LEN = 10*24000
 ```
 Flow inside `generate`: conditionals -> exaggeration refresh -> `punc_norm` -> tokenize ->
-duplicate for CFG **only if `cfg_weight > 0`** -> SOT/EOT pad -> `t3.inference(max_new_tokens=1000, ...)`
+SOT/EOT pad -> `t3.inference(max_new_tokens=1000, ...)` (T3 adds the CFG row itself when `cfg_weight > 0`)
 -> `[0]` -> `drop_invalid_tokens` -> `< 6561` filter -> `s3gen.inference` -> watermark.
 
 ## `chatterbox.mtl_tts.ChatterboxMultilingualTTS`
@@ -37,8 +37,8 @@ ChatterboxMultilingualTTS.get_supported_languages() -> dict[code, name]   # copy
 module constants: SUPPORTED_LANGUAGES, MULTILINGUAL_T3_MODELS, DEFAULT_MULTILINGUAL_T3_MODEL
 ```
 Differences from `ChatterboxTTS`: `language_id` is **positional-required** (2nd arg) and
-validated; always duplicates tokens for CFG (so `cfg_weight=0` works); trims the last
-token's audio (960 samples); loads `.pt` weights for VE/S3Gen; uses `MTLTokenizer`.
+validated; trims the last token's audio (960 samples); loads `.pt` weights for VE/S3Gen;
+uses `MTLTokenizer`.
 
 ## `chatterbox.tts_turbo.ChatterboxTurboTTS` (Turbo and Nano)
 
@@ -76,6 +76,7 @@ the target `ref_dict`. Output length = 960 * n_tokens (roughly the source length
 T3(hp: T3Config | None = None)
 .inference(*, t3_cond, text_tokens, max_new_tokens=None, temperature=0.8, top_p=0.95, min_p=0.05,
            repetition_penalty=1.2, cfg_weight=0.5, ...ignored...) -> LongTensor(1, n)   # Llama variants
+           # text_tokens: 1 row (T3 repeats it for CFG when cfg_weight > 0) or 2 rows [cond, uncond]
 .inference_turbo(t3_cond, text_tokens, temperature=0.8, top_k=1000, top_p=0.95,
                  repetition_penalty=1.2, max_gen_len=1000) -> LongTensor(1, n)          # GPT-2 variants
 .prepare_conditioning(t3_cond) -> Tensor(B, L_cond, dim)

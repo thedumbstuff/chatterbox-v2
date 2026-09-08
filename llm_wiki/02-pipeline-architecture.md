@@ -96,11 +96,11 @@ Turbo/Nano:      [spk(1)] [prompt speech tokens (<=375)] [GPT-2 BPE text tokens]
 
 ## Classifier-free guidance (Llama variants only)
 
-`T3.inference` always runs **batch 2**: row 0 is conditional, row 1 has its text embeddings
-zeroed (`text_emb[1].zero_()` in `prepare_input_embeds` when `cfg_weight > 0`). At each step
-`logits = cond + cfg_weight * (cond - uncond)`. The callers duplicate the text tokens to make
-batch 2 (`torch.cat([text_tokens, text_tokens])`). See gotcha G1 in
-[12-gotchas-known-issues.md](12-gotchas-known-issues.md) about `cfg_weight=0` in `tts.py`.
+With `cfg_weight > 0`, `T3.inference` runs **batch 2**: it repeats the caller's single text row,
+row 0 is conditional, row 1 has its text embeddings zeroed (`text_emb[1].zero_()` in
+`prepare_input_embeds`). At each step `logits = cond + cfg_weight * (cond - uncond)`. With
+`cfg_weight == 0` it runs a single row and uses its logits directly (since the G1 fix,
+2026-09-08; before that the callers duplicated tokens and `tts.py` crashed at cfg 0).
 
 S3Gen has its own, separate CFG inside the flow-matching solver (`inference_cfg_rate=0.7`,
 un-conditioned branch has `mu`, `spks`, `cond` zeroed). Not exposed as a user parameter.

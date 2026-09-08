@@ -16,13 +16,11 @@ Each recipe names the files, the minimal edit, and what can break. Update
 - Risk: `Conditionals.load` is referenced by name in `conds.pt`? No: it is a plain dict, so
   moving the class is safe.
 
-## E2. Fix G1 (`cfg_weight=0` in `ChatterboxTTS`)
+## E2. Fix G1 (`cfg_weight=0` in `ChatterboxTTS`) - DONE 2026-09-08
 
-Option A (minimal): in `tts.py::generate` always duplicate text tokens (delete the `if`),
-mirroring `mtl_tts.py`. Option B (better): in `T3.inference`, build `bos_embed` with the
-same batch as `embeds` and skip the CFG mix when `cfg_weight == 0`; then callers need not
-duplicate at all, halving T3 compute for cfg 0. Option B changes `prepare_input_embeds`
-(`text_emb[1].zero_()` guarded by batch size) and the loop's `cond/uncond` split.
+Implemented "Option B": `T3.inference` repeats a single text row when `cfg_weight > 0`,
+runs one row otherwise, sizes `bos_embed`/step embeddings to `B`, and skips the CFG mix at
+cfg 0. Callers no longer duplicate. Verified output-preserving with `tests/g1_equivalence.py`.
 
 ## E3. Greedy / deterministic decoding (G6)
 

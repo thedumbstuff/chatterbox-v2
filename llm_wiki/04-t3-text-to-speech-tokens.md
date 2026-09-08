@@ -88,19 +88,20 @@ What it actually does (several parameters are **ignored**: `num_return_sequences
    `LlamaPreTrainedModel + GenerationMixin` subclass whose `forward(inputs_embeds, past_key_values, ...)`
    runs the backbone and applies `speech_head` to the last hidden layer. It asserts you
    never pass a multi-token input together with a non-empty cache.
-4. **Hard-codes batch 2 for CFG**: `bos_embed = cat([bos_embed, bos_embed])` (with
-   `speech_pos_emb.get_fixed_embedding(0)` added), then
-   `inputs_embeds = cat([embeds, bos_embed], dim=1)` -> requires `embeds` to have batch 2.
-   Note the BOS is therefore present **twice** in the sequence: once from
-   `initial_speech_tokens` inside `embeds`, once appended here. This is how upstream ships;
-   changing it changes model behaviour.
+4. **Batching (since the G1 fix, 2026-09-08)**: `use_cfg = cfg_weight > 0`. If `use_cfg` and one
+   text row was passed, it is repeated to 2 rows; 2 rows are accepted as-is; anything else raises
+   `ValueError`. Without CFG exactly one row is required. `B` is then 1 or 2. `bos_embed`
+   (with `speech_pos_emb.get_fixed_embedding(0)` added) is repeated to `B` and appended:
+   `inputs_embeds = cat([embeds, bos_embed], dim=1)`. Note the BOS is present **twice** in
+   the sequence: once from `initial_speech_tokens` inside `embeds`, once appended here. This
+   is how upstream ships (G2); changing it changes model behaviour.
 5. Initial forward pass on the full prefix (`past_key_values=None`), then a loop up to
    `max_new_tokens` (callers pass 1000):
-   - `logits = cond + cfg_weight * (cond - uncond)` from rows 0 and 1.
+   - `logits = cond + cfg_weight * (cond - uncond)` from rows 0 and 1 when `use_cfg`, else row 0 as-is.
    - `RepetitionPenaltyLogitsProcessor(repetition_penalty)` over `generated_ids` (starts with BOS).
    - divide by `temperature` (if != 1.0), then `MinPLogitsWarper(min_p)`, then `TopPLogitsWarper(top_p)`.
    - `torch.multinomial` sample; append; **break on `stop_speech_token`** (the EOS is included in the output).
-   - embed the new token + `speech_pos_emb.get_fixed_embedding(i + 1)`, duplicate for batch 2, step with cache.
+   - embed the new token + `speech_pos_emb.get_fixed_embedding(i + 1)`, repeat to `B` rows, step with cache.
 6. Returns `(1, n_generated)` tokens (predicted only, BOS excluded, EOS included if hit).
    `tqdm` progress bar "Sampling" is shown.
 

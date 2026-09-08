@@ -254,6 +254,23 @@ class T3(nn.Module):
         _ensure_BOT_EOT(text_tokens, self.hp)
         text_tokens = torch.atleast_2d(text_tokens).to(dtype=torch.long, device=self.device)
 
+        # Classifier-free guidance needs two rows: [conditional, unconditional]. Build the
+        # second row here if the caller passed a single one; without CFG run a single row.
+        use_cfg = cfg_weight > 0.0
+        if use_cfg and text_tokens.size(0) == 1:
+            text_tokens = text_tokens.repeat(2, 1)
+        if use_cfg and text_tokens.size(0) != 2:
+            raise ValueError(
+                f"cfg_weight={cfg_weight} requires text_tokens with batch size 1 or 2, "
+                f"got {text_tokens.size(0)}"
+            )
+        if not use_cfg and text_tokens.size(0) != 1:
+            raise ValueError(
+                f"cfg_weight=0 requires a single text_tokens row (batched inference is not "
+                f"supported), got batch size {text_tokens.size(0)}"
+            )
+        B = text_tokens.size(0)
+
         # Default initial speech to a single start-of-speech token
         if initial_speech_tokens is None:
             initial_speech_tokens = self.hp.start_speech_token * torch.ones_like(text_tokens[:, :1])
@@ -303,11 +320,11 @@ class T3(nn.Module):
         device = embeds.device
 
         bos_token = torch.tensor([[self.hp.start_speech_token]], dtype=torch.long, device=device)
-        bos_embed = self.speech_emb(bos_token)  # shape: (B, 1, embed_dim)
+        bos_embed = self.speech_emb(bos_token)  # shape: (1, 1, embed_dim)
         bos_embed = bos_embed + self.speech_pos_emb.get_fixed_embedding(0)
 
-        # batch_size=2 for CFG
-        bos_embed = torch.cat([bos_embed, bos_embed])
+        # Match the batch of `embeds` (2 rows with CFG, 1 without).
+        bos_embed = bos_embed.repeat(B, 1, 1)
 
         # Combine condition and BOS token for the initial input
         inputs_embeds = torch.cat([embeds, bos_embed], dim=1)
@@ -317,7 +334,6 @@ class T3(nn.Module):
         predicted = []  # To store the predicted tokens
 
         # Instantiate the logits processors.
-        top_p_warper = TopPLogitsWarper(top_p=top_p)
         min_p_warper = MinPLogitsWarper(min_p=min_p)
         top_p_warper = TopPLogitsWarper(top_p=top_p)
         repetition_penalty_processor = RepetitionPenaltyLogitsProcessor(penalty=float(repetition_penalty))
@@ -337,12 +353,15 @@ class T3(nn.Module):
         # ---- Generation Loop using kv_cache ----
         for i in tqdm(range(max_new_tokens), desc="Sampling", dynamic_ncols=True):
             logits_step = output.logits[:, -1, :]
-            # CFG combine  → (1, V)
-            cond   = logits_step[0:1, :]
-            uncond = logits_step[1:2, :]
-            cfg = torch.as_tensor(cfg_weight, device=cond.device, dtype=cond.dtype)
-            logits = cond + cfg * (cond - uncond)
-            
+            cond = logits_step[0:1, :]
+            if use_cfg:
+                # CFG combine  → (1, V)
+                uncond = logits_step[1:2, :]
+                cfg = torch.as_tensor(cfg_weight, device=cond.device, dtype=cond.dtype)
+                logits = cond + cfg * (cond - uncond)
+            else:
+                logits = cond
+
             # Apply repetition penalty
             ids_for_proc = generated_ids[:1, ...]   # batch = 1
             logits = repetition_penalty_processor(ids_for_proc, logits)  # expects (B,V)
@@ -371,8 +390,8 @@ class T3(nn.Module):
             next_token_embed = self.speech_emb(next_token)
             next_token_embed = next_token_embed + self.speech_pos_emb.get_fixed_embedding(i + 1)
 
-            #  For CFG
-            next_token_embed = torch.cat([next_token_embed, next_token_embed])
+            # Same token for every row (the CFG row shares the sampled sequence).
+            next_token_embed = next_token_embed.repeat(B, 1, 1)
 
             # Forward pass with only the new token and the cached past.
             output = self.patched_model(

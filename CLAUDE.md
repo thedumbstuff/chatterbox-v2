@@ -59,8 +59,7 @@ line there** (date + what), newest first. Details go to `llm_wiki/changelog.md`.
    never silently change one variant's normalisation.
 4. Keep public class names and `generate()` signatures backward compatible; README, apps,
    and external users rely on them. Add parameters with defaults.
-5. Known sharp edges to remember while coding: `ChatterboxTTS(cfg_weight=0)` crashes (G1);
-   hard 1000-token = 40 s cap (G5); `temperature=0` is not greedy (G6); `audio_prompt_path`
+5. Known sharp edges to remember while coding: hard 1000-token = 40 s cap (G5); `temperature=0` is not greedy (G6); `audio_prompt_path`
    recomputes conditionals every call (G7); every `*.wav` is git-ignored (G9).
 6. Prefer `logging` over `print`; the library currently prints and shows tqdm bars (G13).
 7. Everything runs fp32 by design. Precision/speed changes go through E7 with measurements.

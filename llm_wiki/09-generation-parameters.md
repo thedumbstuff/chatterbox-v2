@@ -6,7 +6,7 @@
 |-----------|---------------------------|--------------|--------------|---------------|
 | `audio_prompt_path` | yes | yes | yes (> 5 s required) | `prepare_conditionals` |
 | `exaggeration` | yes, default 0.5 | yes, default 0.5 | **ignored** (default 0.0, warns if > 0) | `T3Cond.emotion_adv` -> `emotion_adv_fc` prefix token |
-| `cfg_weight` | yes, default 0.5 (**0 crashes, see G1**) | yes, default 0.5 (0 works) | **ignored** | `T3.inference` CFG mix `cond + w*(cond - uncond)` |
+| `cfg_weight` | yes, default 0.5 (0 works since G1 fix) | yes, default 0.5 | **ignored** | `T3.inference` CFG mix `cond + w*(cond - uncond)` |
 | `temperature` | 0.8 | 0.8 | 0.8 | logits / T before sampling |
 | `top_p` | 1.0 (off) | 1.0 (off) | 0.95 | nucleus filter |
 | `min_p` | 0.05 | 0.05 | **ignored** (default 0.0, warns if > 0) | `MinPLogitsWarper` |
@@ -28,7 +28,7 @@
   (the unconditional branch has its text embeddings zeroed but keeps speaker/prompt/emotion).
   Higher = closer adherence to text/pacing, README calls it "CFG/Pace". README tips: 0.3 for
   fast speakers or expressive speech; 0 when the reference language differs from
-  `language_id` (multilingual only, given G1).
+  `language_id` (multilingual).
 - **temperature**: applied before min_p/top_p (Llama loop) or via `TemperatureLogitsWarper`
   first in the processor list (Turbo). `temperature=0` is **not** greedy in either loop:
   Llama loop divides by 0 -> inf/NaN logits (avoid); Turbo skips the warper and samples normally.
@@ -63,6 +63,7 @@ Seed all of `torch`, `torch.cuda`, `random`, `numpy` (the apps' `set_seed`). The
 | Nano | ~1.0 s | 0.21 | 1.9 GiB | ~10 s |
 | Turbo | ~1.7 s | 0.35 | 2.8 GiB | ~3 s |
 | Original English (cfg 0.5) | ~3.1 s | 0.76 | 3.2 GiB | ~4.4 s |
+| Original English (cfg 0, batch 1 after G1 fix) | ~3.2 s | 0.65 | | |
 | Multilingual v3 (hi) | ~3.0 s | 0.77 | 3.2 GiB | ~4 s |
 | VC (4 s source) | ~1.5 s | 0.36 | small | |
 
@@ -72,7 +73,8 @@ Hindi outputs peaked at 0.98-0.99 with the built-in voice (near clipping); clone
 
 ## Runtime cost intuition
 
-- T3 dominates: one transformer step per 40 ms of audio, batch 2 for CFG (Llama variants).
+- T3 dominates: one transformer step per 40 ms of audio, batch 2 when `cfg_weight > 0` (Llama variants),
+  batch 1 otherwise; the loop is latency-bound so batch 1 is only ~8% faster.
   1000 steps max. Nano (12 layers, 768) is the CPU-viable one per README.
 - S3Gen: encoder once, CFM estimator `n_steps * 2` (CFG) forward passes over the full mel
   (10 steps -> 20 U-Net passes; Turbo 2 steps -> 2 passes, no CFG), then HiFT once.
