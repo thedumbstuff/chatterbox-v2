@@ -41,6 +41,10 @@ Nano 110M via `nano=True`, meanflow 2-step decoder, `[laugh]`-style tags), `vc.p
   (all variants pass, 2026-09-08) are in wiki 09 and `llm_wiki/changelog.md`.
 - **Scope: only English and Hindi need testing** (user decision 2026-09-08). Use `mtl --lang hi --t3 v3` for Hindi.
 - No pytest suite yet; CI only does `pip install -e .`.
+- **Studio UI**: `app.py` (Gradio 6) on top of `src/chatterbox/studio/` (engine, voice library, history,
+  text splitter). `app.py --check` builds the UI without launching. Drive the live app with
+  `gradio_client` for tests (see wiki 10). Stop a background instance by PID, never `taskkill /IM python.exe`
+  (other Python apps run on this machine). Gradio 6: `theme`/`css` go on `launch()`, not `Blocks()`.
 
 ## README one-liner change log (user rule)
 

@@ -2,10 +2,34 @@
 
 <!-- Keep this list current: every change to this fork gets one line here. Details live in llm_wiki/changelog.md. -->
 
+- 2026-09-08: Added **Chatterbox Studio** (`app.py`): one UI for all models with a persistent click-to-use voice library, Hindi + 22 languages, long-text chunking, replayable history, voice conversion. Logic in `src/chatterbox/studio/`.
 - 2026-09-08: Perth watermark OFF by default (`watermark=True` to re-enable; `perth` now an optional extra). Measured: ~1.1 s one-off per process + ~10 ms per clip, audio altered at 15.8 dB SNR. See "Watermarking" section.
 - 2026-09-08: Fixed G1: `T3.inference` now builds the CFG row itself, so `cfg_weight=0` works for `ChatterboxTTS` and runs at batch 1; callers no longer duplicate text tokens (bit-identical outputs, `tests/g1_equivalence.py`).
 - 2026-09-08: Verified every variant runs on Windows + RTX 4090 (Python 3.12 venv); added `tests/smoke_generate.py`; confirmed bug G1 (`ChatterboxTTS.generate(cfg_weight=0)` crashes, multilingual is fine).
 - 2026-09-08: Added `llm_wiki/` knowledge base, `CLAUDE.md` files, and `venv/` ignore rules.
+
+---
+
+## Chatterbox Studio (this fork's UI)
+
+One app for every model, with a persistent voice library and a generation history:
+
+```powershell
+.\venv\Scripts\python.exe app.py            # opens http://127.0.0.1:7860
+.\venv\Scripts\python.exe app.py --share    # add a public Gradio link (off by default)
+```
+
+- **Voices** (left): upload or record a clip once, give it a name, click **Save voice**. It is stored in
+  `voices/<name>/` and appears in the list; click it to use it with any model. Preview, rename, delete.
+  Conditioning for each (voice, model) pair is computed on first use and cached, so a saved voice is instant afterwards.
+- **Models**: Nano (fastest), Turbo (best English), Chatterbox (exaggeration/CFG controls), Multilingual v3 (Hindi + 22 languages).
+  Only the settings that a model actually uses are shown. Turbo/Nano show clickable `[laugh]`-style tag buttons.
+- **Long text** is split into sentences automatically (the models cap at 40 s per call) and joined with a short silence.
+- **History** tab: every generation is saved under `syn_out/history/` with its text and parameters; click a row to replay or download.
+- **Voice conversion** tab: convert any recording into a saved voice.
+- **Models** tab: load/unload models (all four together need about 11 GiB of VRAM).
+
+Watermark is off by default (checkbox in Settings). Voices and history stay on this machine and are git-ignored.
 
 ---
 

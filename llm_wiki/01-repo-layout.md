@@ -13,6 +13,9 @@ chatterbox-v2/
 ├── .github/workflows/install_check.yml   # CI: pip install -e . on Python 3.10, nothing else
 ├── Chatterbox-Multilingual.png / Chatterbox-Turbo.jpg   # README banners
 │
+├── app.py                        # OURS: Chatterbox Studio UI (all models, voice library, history, VC)
+├── tests/                        # OURS: smoke_generate.py, g1_equivalence.py, bench_watermark.py
+├── voices/                       # OURS (git-ignored): saved voices <slug>/{ref.wav, meta.json, conds_<model>.pt}
 ├── example_tts.py                # ChatterboxTTS + Multilingual(fr) demo, auto device
 ├── example_tts_turbo.py          # ChatterboxTurboTTS demo with [chuckle] tag
 ├── example_tts_nano.py           # same with nano=True
@@ -30,6 +33,10 @@ chatterbox-v2/
     ├── tts_turbo.py      (320)   # ChatterboxTurboTTS: Turbo + Nano, GPT-2 backbone, meanflow S3Gen
     ├── vc.py             (103)   # ChatterboxVC: S3Gen-only voice conversion
     ├── watermark.py      (ours)  # optional Perth watermark: get_watermarker(), maybe_watermark(), resolve()
+    ├── studio/           (ours)  # UI-independent app logic
+    │   ├── engine.py             # Engine: lazy model cache, apply_voice() with per-(voice,model) conds cache, generate() with chunking, convert()
+    │   ├── library.py            # VoiceLibrary (voices/ dir), History (syn_out/history), DEFAULT_VOICE sentinel
+    │   └── textsplit.py          # split_text(): sentence/clause/word chunking incl. Devanagari danda
     └── models/
         ├── utils.py      (4)     # AttrDict
         ├── t3/                   # === Stage 1: text -> speech tokens (autoregressive LLM) ===

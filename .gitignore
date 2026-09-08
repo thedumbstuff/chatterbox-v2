@@ -51,3 +51,6 @@ checkpoints/
 venv/
 .venv/
 .idea/
+
+# Chatterbox Studio voice library (local, per machine)
+voices/

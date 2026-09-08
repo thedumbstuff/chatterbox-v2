@@ -31,7 +31,35 @@ Project scope decision (user, 2026-09-08): **test only English and Hindi** for m
 near-greedy sampling (temperature 0.05, fixed seed) and saves token ids to `syn_out/g1_*.pt`, to
 prove a decoding-loop refactor is output-preserving. Reuse the pattern for future T3 changes.
 
-## Gradio apps
+## Chatterbox Studio (`app.py`, added 2026-09-08)
+
+Gradio 6 app over `src/chatterbox/studio/`. Run `.\venv\Scripts\python.exe app.py` (`--port`, `--share`,
+`--no-open`, `--check` to build without launching).
+
+Layout: **Generate** tab (left: voice list radio + preview + rename/delete + "Add a voice" upload/mic;
+right: model radio, language dropdown (multilingual only), text, tag buttons (Turbo/Nano only),
+Generate, output player, Settings accordion), **History** tab (Dataframe; click a row to replay),
+**Voice conversion** tab, **Models** tab (load/unload, VRAM).
+
+Key behaviours:
+- `Engine.apply_voice(model_key, slug)` computes `prepare_conditionals` once per (voice, model) and
+  stores `voices/<slug>/conds_<model>.pt` (`refdict_vc.pt` for VC); later uses load it (0.38 s -> 0.00 s
+  measured). The built-in voice is restored from the object captured at load time.
+- Only parameters a model supports are passed (Turbo/Nano: top_k, loudness; others: exaggeration,
+  cfg, min_p), so no "ignored parameter" warnings.
+- Long text: `split_text(max_chars)` then per-chunk generate, joined with `gap_ms` silence.
+- Turbo/Nano reject voices <= 5 s with a clear error (upstream asserts inside `prepare_conditionals`).
+- History keeps the last 300 generations (`syn_out/history/index.json`).
+- Per-session Radio validation: choices are refreshed on page load and by the Refresh button; an
+  API client session must call `/save_voice` (or reload) before it can pass a new slug.
+- Env overrides: `CHATTERBOX_VOICES_DIR`, `CHATTERBOX_HISTORY_DIR`.
+
+Testing: `app.py --check`; drive a running instance with `gradio_client` (`Client(url).predict(...,
+api_name="/generate")`, argument order = the `inputs` list in `app.py`). Set `PYTHONIOENCODING=utf-8`
+when printing status strings on Windows. Verified in Chrome on 2026-09-08 (generate, model switch,
+history replay).
+
+## Upstream Gradio apps
 
 All use `gradio==6.8.0` (pinned in pyproject, imported as a hard dependency of the library
 even though the library itself never imports it).

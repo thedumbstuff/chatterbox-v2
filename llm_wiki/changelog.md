@@ -78,3 +78,15 @@ Format: date, who/what, files, why, follow-ups.
   estimate of "~45% of Nano time" was the cold first-call cost, not the per-clip cost.
 - Verified: nano / english cfg 0 / mtl-v3 hi / vc with default -> detector 0.0; nano and hi with
   `--watermark` -> 1.0.
+
+## 2026-09-08 - Chatterbox Studio UI
+
+- `app.py` + `src/chatterbox/studio/{engine,library,textsplit}.py`. Persistent voice library
+  (`voices/`, git-ignored), per-(voice, model) conditionals cache, all four models + VC, Hindi-first
+  language list, long-text chunking, replayable history, models tab. Watermark checkbox off by default.
+- Verified: engine test (library CRUD, cache hit, 4-chunk 28 s generation, mtl hi, english cfg 0, VC,
+  short-voice rejection), `app.py --check`, live app driven via `gradio_client` (save/generate turbo +
+  mtl hi + english long/convert/preview/rename/delete), Chrome walkthrough (generate, model switch,
+  history replay).
+- Gradio 6 notes: `theme`/`css` on `launch()`; no `show_api` kwarg; Radio values validated per session.
+- Process hygiene: stop background apps by PID (`syn_out/app.pid` pattern), not by image name.

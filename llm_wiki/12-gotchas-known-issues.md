@@ -12,7 +12,7 @@ Numbered so other pages and commit messages can reference them (G1, G2, ...). St
 | G4 | API | open | Many accepted parameters are silently ignored |
 | G5 | limit | open | Hard 1000-token (40 s) generation cap; long text is cut without warning |
 | G6 | bug | open | `temperature=0` is not greedy; Llama loop divides by zero |
-| G7 | perf | open | Passing `audio_prompt_path` recomputes all conditionals on every call |
+| G7 | perf | open in library; solved in Studio via conds cache | Passing `audio_prompt_path` recomputes all conditionals on every call |
 | G8 | packaging | open | `import chatterbox` requires the package to be pip-installed |
 | G9 | packaging | open | `.gitignore` ignores every `*.wav` in the repo |
 | G10 | loading | open | State-dict strictness differs per variant; deleting "dead" modules breaks loading |

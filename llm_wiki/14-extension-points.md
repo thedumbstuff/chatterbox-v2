@@ -28,7 +28,7 @@ Add `do_sample: bool` handling in both loops: `next_token = logits.argmax(-1, ke
 when `not do_sample` (Llama loop) or `temperature == 0` (Turbo). Keep repetition penalty
 applied before argmax.
 
-## E4. Long-form text (G5)
+## E4. Long-form text (G5) - DONE in Studio (`studio/textsplit.py` + `Engine.generate`)
 
 Do sentence splitting in a new helper (`src/chatterbox/longform.py`): split on
 `punc_norm` sentence enders (respect the multilingual set), generate per chunk with cached
@@ -95,7 +95,7 @@ its T3 file into the main snapshot dir, or (b) add a `repo_id` parameter to
 `from_pretrained`. Verify that the pack uses the same tokenizer json and `T3Config.multilingual()`
 before assuming compatibility **(unverified)**.
 
-## E10. Voice caching / voice library
+## E10. Voice caching / voice library - DONE in Studio (`studio/library.py`, `Engine.apply_voice`)
 
 `Conditionals.save(path)` / `Conditionals.load(path, map_location)` already round-trip the
 full conditioning (both T3 and S3Gen parts). Build a library as `{name: path_to_conds.pt}`
