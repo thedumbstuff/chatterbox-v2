@@ -45,3 +45,5 @@ where a claim is an inference rather than a verified run, it is marked **(unveri
 | [14-extension-points.md](14-extension-points.md) | How to make the changes we are likely to make |
 | [15-glossary.md](15-glossary.md) | Terms: T3, S3, CFM, meanflow, x-vector, CFG, exaggeration, ... |
 | [changelog.md](changelog.md) | Our modification log and decision record (append-only) |
+
+Also: the one-line-per-change log at the **top of the repo `README.md`** must be updated with every change (user rule).

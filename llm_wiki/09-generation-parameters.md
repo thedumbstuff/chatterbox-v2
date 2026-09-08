@@ -56,7 +56,21 @@ Sampling happens in T3 (`torch.multinomial`) and in the CFM initial noise (`torc
 Seed all of `torch`, `torch.cuda`, `random`, `numpy` (the apps' `set_seed`). The Perceiver's
 `sdp_kernel` flash path and cuDNN can still introduce nondeterminism on GPU.
 
-## Runtime cost intuition (not measured here)
+## Measured on RTX 4090, fp32, warm (2026-09-08, ~4-5 s sentences, built-in voice)
+
+| Variant | gen time | RTF | peak VRAM | first call (cold, incl. CUDA warmup) |
+|---------|----------|-----|-----------|--------------------------------------|
+| Nano | ~1.0 s | 0.21 | 1.9 GiB | ~10 s |
+| Turbo | ~1.7 s | 0.35 | 2.8 GiB | ~3 s |
+| Original English (cfg 0.5) | ~3.1 s | 0.76 | 3.2 GiB | ~4.4 s |
+| Multilingual v3 (hi) | ~3.0 s | 0.77 | 3.2 GiB | ~4 s |
+| VC (4 s source) | ~1.5 s | 0.36 | small | |
+
+RTF = generation time / audio duration (lower is faster; < 1 is faster than realtime).
+Model load from local HF cache: 6-8 s (Turbo/English/MTL), 2.7 s (VC). First download: 60-95 s per repo.
+Hindi outputs peaked at 0.98-0.99 with the built-in voice (near clipping); cloned-voice runs peaked ~0.5.
+
+## Runtime cost intuition
 
 - T3 dominates: one transformer step per 40 ms of audio, batch 2 for CFG (Llama variants).
   1000 steps max. Nano (12 layers, 768) is the CPU-viable one per README.

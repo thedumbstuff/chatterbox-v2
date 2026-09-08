@@ -3,12 +3,16 @@
 ## This machine (checked 2026-09-08)
 
 - Windows 11 Home 10.0.26200, Git Bash + PowerShell 5.1.
-- System Python **3.13.1** (`C:\Users\shwet\AppData\Local\Programs\Python\Python313\python.exe`).
-  There is **no venv in `chatterbox-v2/` yet** and no Chatterbox weights in the HF cache.
+- System Pythons: 3.13.1 and **3.12.9** (`C:\Users\shwet\AppData\Local\Programs\Python\Python312\`). `uv` 0.8.4 available.
+- **`chatterbox-v2/venv` exists (created 2026-09-08 with `uv venv venv --python 3.12`)**: Python 3.12.9,
+  torch 2.6.0+cu124, numpy 1.26.4, transformers 5.2.0, diffusers 0.29.0, package installed editable.
+  Run everything with `.\venv\Scripts\python.exe`. All pinned deps (incl. `spacy-pkuseg`, `pykakasi`,
+  `resemble-perth` from git) installed cleanly on 3.12; 3.13 was not tried.
+- HF cache now holds `ResembleAI/chatterbox` (original + multilingual v2 + v3 files), `chatterbox-turbo`, `chatterbox-nano`.
+  No `HF_TOKEN` was needed for any of them (unauthenticated warning only). Windows without Developer
+  Mode cannot symlink, so the HF cache stores duplicate copies (set `HF_HUB_DISABLE_SYMLINKS_WARNING=1` to silence).
 - GPU: **NVIDIA GeForce RTX 4090, 24 GB**, driver 591.86. All variants fit easily in fp32.
-- Sibling projects keep their venv in-folder (`../cskr_daytrade/venv`); do the same here
-  (`chatterbox-v2/venv`, git-ignored? **No**: `.gitignore` does not list `venv/`; add it or
-  use `.venv` which is also not listed. Add a line before committing).
+- Sibling projects keep their venv in-folder (`../cskr_daytrade/venv`); same here. `venv/` and `.venv/` are git-ignored since commit `e2cbd5e`.
 
 ## `pyproject.toml` dependency pins (version 0.1.7)
 
@@ -50,16 +54,15 @@ warning and unprocessed text.
   create the venv with Python 3.11 instead (install via `winget install Python.Python.3.11`
   or `uv python install 3.11`).
 
-## Suggested setup (not yet done in this checkout)
+## Setup as performed on 2026-09-08 (repeat only if the venv is lost)
 
 ```powershell
 cd C:\Shwetank\Work\Workspace\Python\opensource\chatterbox-v2
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install --upgrade pip
-pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-pip install -e .
-python -c "import chatterbox, torch; print(chatterbox.__version__, torch.cuda.is_available())"
+uv venv venv --python 3.12
+uv pip install --python .\venv\Scripts\python.exe torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+uv pip install --python .\venv\Scripts\python.exe -e .
+.\venv\Scripts\python.exe -c "import chatterbox, torch; print(chatterbox.__version__, torch.cuda.is_available())"
+.\venv\Scripts\python.exe tests\smoke_generate.py nano     # first real check; downloads weights
 ```
 Install torch **before** `pip install -e .` so the CUDA build satisfies the pin instead of
 the CPU wheel. Verify with `torch.cuda.is_available()`.

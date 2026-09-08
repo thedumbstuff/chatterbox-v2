@@ -22,3 +22,21 @@ Format: date, who/what, files, why, follow-ups.
   fails to build, fall back to a Python 3.11 venv.
 - Run each variant once to convert the **(unverified)** claims (notably G1) into verified ones.
 - Add `venv/` to `.gitignore` before the first commit.
+
+## 2026-09-08 - Environment set up, all variants verified, smoke test added
+
+- Commit `e2cbd5e`: wiki + CLAUDE files + `.gitignore` (`venv/`, `.venv/`).
+- Created `venv` with `uv venv --python 3.12` (Python 3.12.9), torch 2.6.0+cu124, `pip install -e .`.
+  Every pinned dependency installed without issue on 3.12.
+- Added `tests/smoke_generate.py`. Results (all OK, watermark detected on every output):
+  nano, turbo, english (cfg 0.5), mtl v2/v3 fr, mtl v3 zh/ja, mtl v2/v3 hi, cloning for
+  turbo/english/hi with a generated reference, VC. Warm speed table in wiki 09.
+- **G1 verified**: `english --cfg 0.0` -> `RuntimeError` at `t3.py:313`; `mtl --cfg 0.0` works.
+- G15 confirmed as a `FutureWarning` on torch 2.6 (still functional).
+- User scope decision: only English and Hindi need testing going forward.
+- Added a "Fork change log" one-liner section at the top of `README.md` (user request; keep updated).
+
+### Open follow-ups
+- Fix G1 (recipe E2). Decide whether to keep the double-BOS (G2) when doing so.
+- Hindi built-in-voice outputs peak at ~0.99: consider a soft limiter or checking `S3Gen` output gain.
+- Turn `tests/smoke_generate.py` into pytest cases (E15) once behaviour changes start.

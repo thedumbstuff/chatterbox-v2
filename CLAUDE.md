@@ -28,16 +28,23 @@ Nano 110M via `nano=True`, meanflow 2-step decoder, `[laugh]`-style tags), `vc.p
 
 ## Environment (this machine)
 
-- Windows 11, PowerShell. Python 3.13.1 system; **no venv in this repo yet**. RTX 4090 24 GB.
-- Setup (once): `python -m venv venv; .\venv\Scripts\Activate.ps1;`
-  `pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124; pip install -e .`
-  Install CUDA torch **before** `pip install -e .`. If `spacy-pkuseg` fails on 3.13, use a 3.11 venv.
-- Always run with `.\venv\Scripts\python.exe` once the venv exists. `pip install -e .` is
-  required even to import (`__init__.py` reads the installed version).
-- Weights download from Hugging Face on first `from_pretrained` (several GB). Set `HF_TOKEN`
-  if a repo is gated. Cache: `C:\Users\shwet\.cache\huggingface\hub`.
-- No tests exist. CI only does `pip install -e .`. Verify changes by actually generating
-  audio (`python example_tts_turbo.py` is the cheapest: Turbo/Nano, English, built-in voice).
+- Windows 11, PowerShell. RTX 4090 24 GB. **`venv/` exists**: Python 3.12.9, torch 2.6.0+cu124,
+  package installed editable (`uv venv venv --python 3.12` + `uv pip install`; recipe in wiki 11).
+- **Always run with `.\venv\Scripts\python.exe`** (never the system Python). `pip install -e .`
+  is required even to import (`__init__.py` reads the installed version).
+- All weights are already in the HF cache (`C:\Users\shwet\.cache\huggingface\hub`): original,
+  multilingual v2+v3, turbo, nano. No `HF_TOKEN` needed. Set `HF_HUB_DISABLE_SYMLINKS_WARNING=1` to quiet the cache warning.
+- **Verify changes by generating audio** with our script (outputs land in git-ignored `syn_out/`):
+  `.\venv\Scripts\python.exe tests\smoke_generate.py nano|turbo|english|mtl|vc|all [--lang hi --t3 v3] [--ref x.wav] [--cfg 0.0] [--tag=-x]`
+  It prints duration, RTF, peak, and watermark detection; exit 1 on failure. Baseline numbers
+  (all variants pass, 2026-09-08) are in wiki 09 and `llm_wiki/changelog.md`.
+- **Scope: only English and Hindi need testing** (user decision 2026-09-08). Use `mtl --lang hi --t3 v3` for Hindi.
+- No pytest suite yet; CI only does `pip install -e .`.
+
+## README one-liner change log (user rule)
+
+The top of `README.md` has a "Fork change log" section. **Every change to this fork gets one
+line there** (date + what), newest first. Details go to `llm_wiki/changelog.md`.
 
 ## Coding rules for this repo
 

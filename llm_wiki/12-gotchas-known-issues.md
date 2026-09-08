@@ -6,7 +6,7 @@ Numbered so other pages and commit messages can reference them (G1, G2, ...). St
 
 | # | Severity | Status | Summary |
 |---|----------|--------|---------|
-| G1 | bug | open | `ChatterboxTTS.generate(cfg_weight=0)` crashes with a batch-size mismatch |
+| G1 | bug | open (**verified 2026-09-08**) | `ChatterboxTTS.generate(cfg_weight=0)` crashes with a batch-size mismatch |
 | G2 | quirk | open | Llama inference feeds the BOS speech token twice |
 | G3 | maintenance | open | `punc_norm` and `Conditionals` are copy-pasted three times and have drifted |
 | G4 | API | open | Many accepted parameters are silently ignored |
@@ -20,7 +20,7 @@ Numbered so other pages and commit messages can reference them (G1, G2, ...). St
 | G12 | limit | open | Turbo tokenizer truncates at GPT-2's 1024-token `model_max_length` silently |
 | G13 | noise | open | `print`/`tqdm` chatter on every generation |
 | G14 | perf | open | `embed_ref` and `prepare_conditionals` run without `inference_mode` |
-| G15 | deprecation | open | Perceiver uses deprecated `torch.backends.cuda.sdp_kernel` |
+| G15 | deprecation | open (warning seen 2026-09-08) | Perceiver uses deprecated `torch.backends.cuda.sdp_kernel` |
 | G16 | thread-safety | open | Models mutate shared state; not safe for concurrent requests |
 | G17 | warning | open | "Reference mel length is not equal to 2 * reference token length" logs on most clips |
 | G18 | deps | open | Heavy mandatory deps (`gradio`, `diffusers`, `conformer`) for tiny usage |
@@ -29,7 +29,8 @@ Numbered so other pages and commit messages can reference them (G1, G2, ...). St
 
 ## Details
 
-### G1 - `cfg_weight=0` crashes in `ChatterboxTTS` **(unverified by run; follows from shapes)**
+### G1 - `cfg_weight=0` crashes in `ChatterboxTTS` **(verified 2026-09-08 with `tests/smoke_generate.py english --cfg 0.0`)**
+Observed: `RuntimeError: Sizes of tensors must match except in dimension 1. Expected size 1 but got size 2 for tensor number 1 in the list.` at `t3.py` line 313 (`inputs_embeds = torch.cat([embeds, bos_embed], dim=1)`). Multilingual with `cfg_weight=0` generated fine.
 `tts.py` only duplicates the text tokens when `cfg_weight > 0`. `T3.inference` then builds
 `embeds` with batch 1 but unconditionally does `bos_embed = torch.cat([bos_embed, bos_embed])`
 (batch 2) and `torch.cat([embeds, bos_embed], dim=1)` -> `RuntimeError: Sizes of tensors must
@@ -120,7 +121,8 @@ One model instance == one request at a time (the Gradio apps use concurrency 1).
 
 ### G17 - benign mel/token length warning
 Emitted from `embed_ref` whenever the 10-s (or shorter) reference is not an exact multiple
-of 40 ms. The code truncates tokens to match. Safe to ignore or to pre-pad the clip to a
+of 40 ms. (Not seen in our 2026-09-08 tests because the references were Chatterbox outputs,
+which are token-aligned; expect it with real recordings.) The code truncates tokens to match. Safe to ignore or to pre-pad the clip to a
 multiple of 960 samples at 24 kHz.
 
 ### G18 - heavy dependencies
