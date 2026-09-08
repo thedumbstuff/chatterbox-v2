@@ -12,7 +12,7 @@
   No `HF_TOKEN` was needed for any of them (unauthenticated warning only). Windows without Developer
   Mode cannot symlink, so the HF cache stores duplicate copies (set `HF_HUB_DISABLE_SYMLINKS_WARNING=1` to silence).
 - GPU: **NVIDIA GeForce RTX 4090, 24 GB**, driver 591.86. All variants fit easily in fp32.
-- Sibling projects keep their venv in-folder (`../cskr_daytrade/venv`); same here. `venv/` and `.venv/` are git-ignored since commit `e2cbd5e`.
+- Sibling projects keep their venv in-folder (`../cskr_daytrade/venv`); same here. `venv/` and `.venv/` are git-ignored since commit `d824743`.
 
 ## `pyproject.toml` dependency pins (version 0.1.7)
 

@@ -25,7 +25,7 @@ Format: date, who/what, files, why, follow-ups.
 
 ## 2026-09-08 - Environment set up, all variants verified, smoke test added
 
-- Commit `e2cbd5e`: wiki + CLAUDE files + `.gitignore` (`venv/`, `.venv/`).
+- Commit `d824743`: wiki + CLAUDE files + `.gitignore` (`venv/`, `.venv/`).
 - Created `venv` with `uv venv --python 3.12` (Python 3.12.9), torch 2.6.0+cu124, `pip install -e .`.
   Every pinned dependency installed without issue on 3.12.
 - Added `tests/smoke_generate.py`. Results (all OK, watermark detected on every output):
@@ -55,3 +55,9 @@ Format: date, who/what, files, why, follow-ups.
 - Left G2 (double BOS) untouched on purpose: equivalence would break otherwise.
 - Observation: english cfg 0 with the built-in voice peaked at 1.023 (clipping) on one run;
   the near-clipping follow-up from the previous entry stands.
+
+## 2026-09-08 - Session trailer removed from history
+
+- Rewrote the three local commits (`git filter-branch --msg-filter`) to drop the
+  `Claude-Session:` URL trailer; hashes changed (`e2cbd5e` -> `d824743`, `7db1414` -> `2b00469`,
+  `93d2e34` -> `f043483`). Nothing had been pushed. Rule added to `CLAUDE.md`: no session URLs in commits.

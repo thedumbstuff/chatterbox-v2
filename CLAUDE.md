@@ -72,6 +72,8 @@ line there** (date + what), newest first. Details go to `llm_wiki/changelog.md`.
   `upstream https://github.com/resemble-ai/chatterbox.git` if we need their fixes.
 - Commit when asked. Add `venv/` to `.gitignore` before the first commit that follows setup.
 - Commit messages: imperative summary; mention gotcha/recipe ids (G#, E#) when relevant.
+- **Never add a `Claude-Session:` trailer (or any session URL) to commit messages** (user decision
+  2026-09-08; it was stripped from history). The `Co-Authored-By: Claude ...` line is fine.
 
 ## Workspace context
 
