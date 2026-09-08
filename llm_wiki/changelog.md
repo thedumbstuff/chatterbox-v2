@@ -61,3 +61,20 @@ Format: date, who/what, files, why, follow-ups.
 - Rewrote the three local commits (`git filter-branch --msg-filter`) to drop the
   `Claude-Session:` URL trailer; hashes changed (`e2cbd5e` -> `d824743`, `7db1414` -> `2b00469`,
   `93d2e34` -> `f043483`). Nothing had been pushed. Rule added to `CLAUDE.md`: no session URLs in commits.
+
+## 2026-09-08 - Perth watermark made opt-in (off by default)
+
+- New `src/chatterbox/watermark.py`: `get_watermarker()` (lazy, imports `perth` on demand),
+  `maybe_watermark(wav, sr, enabled)`, `resolve(default, override)`.
+- `tts.py`, `mtl_tts.py`, `tts_turbo.py`, `vc.py`: `watermark: bool = False` on `__init__`,
+  `from_local`, `from_pretrained`; `watermark: bool | None = None` on `generate`; `perth` import
+  removed; `watermarker` kept as a lazy backward-compat property.
+- `pyproject.toml`: `resemble-perth` moved to `[project.optional-dependencies] watermark`.
+- `tests/smoke_generate.py --watermark`; detector result now checked against expectation.
+  `tests/bench_watermark.py` added.
+- Measurements (README has the table): one-off ~1.1 s per process (0.71 s import+construct after
+  the TTS model is loaded, 0.45 s first call); warm 9-12 ms per 4 s clip (~1% Nano, <0.5% English);
+  audio altered at 15.8 dB SNR; detector 0.0 raw / 1.0 marked. **Correction:** an earlier in-session
+  estimate of "~45% of Nano time" was the cold first-call cost, not the per-clip cost.
+- Verified: nano / english cfg 0 / mtl-v3 hi / vc with default -> detector 0.0; nano and hi with
+  `--watermark` -> 1.0.

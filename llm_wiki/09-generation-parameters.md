@@ -14,6 +14,7 @@
 | `repetition_penalty` | 1.2 | 1.2 | 1.2 | HF `RepetitionPenaltyLogitsProcessor` over generated speech tokens |
 | `language_id` | n/a | required | n/a | tokenizer language tag |
 | `norm_loudness` | n/a | n/a | True (-27 LUFS) | reference clip pre-processing |
+| `watermark` | False (None = instance default) | same | same (also VC) | optional Perth watermark after the vocoder; ~10 ms/clip warm, ~1.1 s one-off per process |
 | seed | not a parameter; apps call `torch.manual_seed` etc. | | | sampling in T3 and CFM noise |
 | `n_cfm_timesteps` | not exposed (10) | not exposed (10) | not exposed (2) | `S3Gen.inference` |
 | max length | not exposed (1000 tokens = 40 s) | same | same (`max_gen_len`) | `T3.inference` / `inference_turbo` |

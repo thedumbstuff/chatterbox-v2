@@ -24,7 +24,7 @@
 | `diffusers` | `==0.29.0` | only `matcha/transformer.py` (`Attention`, `FeedForward` pieces, `LoRACompatibleLinear`, `maybe_allow_in_graph`) and `get_activation` in `matcha/decoder.py`. Heavy dependency for a few classes |
 | `librosa` | `==0.11.0` | audio load/resample/trim, mel filters |
 | `s3tokenizer` | unpinned | provides `S3TokenizerV2`, `ModelConfig`, `utils.padding` |
-| `resemble-perth` | git `resemble-ai/Perth@master` | watermarker; **needs git available to pip** |
+| `resemble-perth` | **optional extra `[watermark]`** (git `resemble-ai/Perth@master`) | watermarker, off by default since 2026-09-08; needs git available to pip |
 | `conformer` | `==0.3.2` | `ConformerBlock` used only by dead `matcha/decoder.py::ConformerWrapper` (still imported at module load) |
 | `safetensors` | `==0.5.3` | checkpoint loading |
 | `spacy-pkuseg` | unpinned | Chinese word segmentation (multilingual `zh`); has compiled wheels, may lack a 3.13 wheel **(unverified)** |

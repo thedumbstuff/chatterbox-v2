@@ -6,34 +6,36 @@ package metadata via `importlib.metadata.version("chatterbox-tts")`, so the pack
 pip-installed** (`pip install -e .`) or the import fails). `ChatterboxTurboTTS` is **not**
 re-exported; import it from `chatterbox.tts_turbo`.
 
-All `generate` methods return `torch.FloatTensor` of shape `(1, n_samples)` at `model.sr == 24000`,
-already watermarked. Save with `torchaudio.save(path, wav, model.sr)`.
+All `generate` methods return `torch.FloatTensor` of shape `(1, n_samples)` at `model.sr == 24000`.
+Save with `torchaudio.save(path, wav, model.sr)`. Every class takes `watermark: bool = False` in
+`__init__`/`from_local`/`from_pretrained` and every `generate` takes `watermark: bool | None = None`
+(None = instance default). `model.watermarker` is a lazy property kept for backward compatibility.
 
 ## `chatterbox.tts.ChatterboxTTS` (original English)
 
 ```python
-ChatterboxTTS(t3, s3gen, ve, tokenizer, device, conds=None)
-ChatterboxTTS.from_pretrained(device) -> ChatterboxTTS
-ChatterboxTTS.from_local(ckpt_dir, device) -> ChatterboxTTS
+ChatterboxTTS(t3, s3gen, ve, tokenizer, device, conds=None, watermark=False)
+ChatterboxTTS.from_pretrained(device, watermark=False) -> ChatterboxTTS
+ChatterboxTTS.from_local(ckpt_dir, device, watermark=False) -> ChatterboxTTS
 .prepare_conditionals(wav_fpath, exaggeration=0.5) -> None      # sets self.conds
 .generate(text, repetition_penalty=1.2, min_p=0.05, top_p=1.0, audio_prompt_path=None,
-          exaggeration=0.5, cfg_weight=0.5, temperature=0.8) -> Tensor(1, N)
-attributes: sr=24000, t3, s3gen, ve, tokenizer (EnTokenizer), device, conds (Conditionals|None), watermarker
+          exaggeration=0.5, cfg_weight=0.5, temperature=0.8, watermark=None) -> Tensor(1, N)
+attributes: sr=24000, t3, s3gen, ve, tokenizer (EnTokenizer), device, conds (Conditionals|None), watermark (bool)
 class constants: ENC_COND_LEN = 6*16000, DEC_COND_LEN = 10*24000
 ```
 Flow inside `generate`: conditionals -> exaggeration refresh -> `punc_norm` -> tokenize ->
 SOT/EOT pad -> `t3.inference(max_new_tokens=1000, ...)` (T3 adds the CFG row itself when `cfg_weight > 0`)
--> `[0]` -> `drop_invalid_tokens` -> `< 6561` filter -> `s3gen.inference` -> watermark.
+-> `[0]` -> `drop_invalid_tokens` -> `< 6561` filter -> `s3gen.inference` -> optional watermark.
 
 ## `chatterbox.mtl_tts.ChatterboxMultilingualTTS`
 
 ```python
-ChatterboxMultilingualTTS.from_pretrained(device, t3_model: str | None = None)
-ChatterboxMultilingualTTS.from_local(ckpt_dir, device, t3_model: str | None = None)
+ChatterboxMultilingualTTS.from_pretrained(device, t3_model: str | None = None, watermark=False)
+ChatterboxMultilingualTTS.from_local(ckpt_dir, device, t3_model: str | None = None, watermark=False)
 ChatterboxMultilingualTTS.get_supported_languages() -> dict[code, name]   # copy of SUPPORTED_LANGUAGES
 .prepare_conditionals(wav_fpath, exaggeration=0.5)
 .generate(text, language_id, audio_prompt_path=None, exaggeration=0.5, cfg_weight=0.5,
-          temperature=0.8, repetition_penalty=1.2, min_p=0.05, top_p=1.0) -> Tensor(1, N)
+          temperature=0.8, repetition_penalty=1.2, min_p=0.05, top_p=1.0, watermark=None) -> Tensor(1, N)
 module constants: SUPPORTED_LANGUAGES, MULTILINGUAL_T3_MODELS, DEFAULT_MULTILINGUAL_T3_MODEL
 ```
 Differences from `ChatterboxTTS`: `language_id` is **positional-required** (2nd arg) and
@@ -43,12 +45,12 @@ uses `MTLTokenizer`.
 ## `chatterbox.tts_turbo.ChatterboxTurboTTS` (Turbo and Nano)
 
 ```python
-ChatterboxTurboTTS.from_pretrained(device, nano=False)
-ChatterboxTurboTTS.from_local(ckpt_dir, device, nano=False)
+ChatterboxTurboTTS.from_pretrained(device, nano=False, watermark=False)
+ChatterboxTurboTTS.from_local(ckpt_dir, device, nano=False, watermark=False)
 .norm_loudness(wav, sr, target_lufs=-27) -> wav
 .prepare_conditionals(wav_fpath, exaggeration=0.5, norm_loudness=True)
 .generate(text, repetition_penalty=1.2, min_p=0.00, top_p=0.95, audio_prompt_path=None,
-          exaggeration=0.0, cfg_weight=0.0, temperature=0.8, top_k=1000, norm_loudness=True) -> Tensor(1, N)
+          exaggeration=0.0, cfg_weight=0.0, temperature=0.8, top_k=1000, norm_loudness=True, watermark=None) -> Tensor(1, N)
 attributes: model_label ("Turbo" | "Nano"), tokenizer is a HF PreTrainedTokenizer
 class constants: ENC_COND_LEN = 15*16000, DEC_COND_LEN = 10*24000
 ```
@@ -60,11 +62,11 @@ class constants: ENC_COND_LEN = 15*16000, DEC_COND_LEN = 10*24000
 ## `chatterbox.vc.ChatterboxVC` (voice conversion)
 
 ```python
-ChatterboxVC(s3gen, device, ref_dict=None)
-ChatterboxVC.from_pretrained(device)
-ChatterboxVC.from_local(ckpt_dir, device)
+ChatterboxVC(s3gen, device, ref_dict=None, watermark=False)
+ChatterboxVC.from_pretrained(device, watermark=False)
+ChatterboxVC.from_local(ckpt_dir, device, watermark=False)
 .set_target_voice(wav_fpath) -> None            # ref_dict from first 10 s
-.generate(audio, target_voice_path=None) -> Tensor(1, N)   # audio = path to source speech
+.generate(audio, target_voice_path=None, watermark=None) -> Tensor(1, N)   # audio = path to source speech
 ```
 Source audio is loaded at 16 kHz, tokenized with `s3gen.tokenizer`, and re-synthesised with
 the target `ref_dict`. Output length = 960 * n_tokens (roughly the source length rounded to

@@ -32,9 +32,9 @@ tokens into 24 kHz audio. See [02-pipeline-architecture.md](02-pipeline-architec
 ## Things that are always true
 
 - Output sample rate is **24 000 Hz** (`S3GEN_SR`), mono, returned as a `(1, N)` float tensor.
-- Every generated waveform is passed through Resemble's **Perth implicit watermarker**
-  (`perth.PerthImplicitWatermarker().apply_watermark`). This is unconditional in all four
-  entry points.
+- **Watermark is OFF by default in this fork** (upstream applied Resemble's Perth watermark
+  unconditionally). `watermark=True` on `from_pretrained`/`from_local`/`generate` re-enables it;
+  helper in `src/chatterbox/watermark.py`; `perth` is an optional extra. Measurements in README.
 - Inference is **batch size 1** end-to-end (asserted in several places).
 - Voice cloning is zero-shot from a reference clip; each HF repo also ships a `conds.pt`
   "built-in voice" used when no `audio_prompt_path` is given.

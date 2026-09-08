@@ -59,6 +59,7 @@ places that repeat the literal instead of importing it (change all of them toget
 | `CFM_PARAMS` | sigma_min 1e-6, euler, cosine, training_cfg 0.2, **inference_cfg_rate 0.7** | `s3gen/configs.py` (a stale duplicate `DictConfig` sits in `flow.py::decoder_conf`) |
 | CFM steps | 10 (normal), 2 (meanflow) | `s3gen.py::flow_inference`, `tts_turbo.py` |
 | Loudness target | -27 LUFS | `tts_turbo.py::norm_loudness` |
+| Perth watermark | off by default; network runs at 32 kHz on CPU, 9.3M params | `watermark.py`, README |
 | Gradio text cap | 300 chars | apps |
 | HiFT NSF | 8 harmonics, sine amp 0.1, noise std 0.003, voiced threshold 10, audio limit 0.99 | `s3gen.py`, `hifigan.py` |
 | `mask_to_bias` | -1e10 for masked | `decoder.py` |

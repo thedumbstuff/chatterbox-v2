@@ -109,12 +109,12 @@ Before `prepare_conditionals`: trim leading silence (`librosa.effects.trim`), pi
 loudest/cleanest 10 s window (the code only uses the first 10 s / 6 s), optionally
 loudness-normalise for Llama variants too (reuse `ChatterboxTurboTTS.norm_loudness`).
 
-## E12. Remove or make the watermark optional
+## E12. Remove or make the watermark optional - DONE 2026-09-08
 
-Each `generate` ends with `self.watermarker.apply_watermark(wav, sample_rate=self.sr)`.
-A `watermark: bool = True` argument or constructor flag is a two-line change per class.
-Resemble's README frames the watermark as a responsible-AI feature; decide policy explicitly
-and record it in `changelog.md`.
+Implemented as opt-in: `src/chatterbox/watermark.py` (`maybe_watermark`, lazy `get_watermarker`),
+`watermark: bool = False` on every class/loader and `watermark: bool | None = None` on every
+`generate`; `perth` moved to the `[watermark]` optional extra. Decision and measurements are in the
+README "Watermarking" section.
 
 ## E13. Serve as an API
 

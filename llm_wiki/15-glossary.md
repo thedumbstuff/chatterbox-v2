@@ -29,7 +29,7 @@
 | **finalize** | Flow flag; `False` = streaming chunk, drop lookahead frames. |
 | **pre-lookahead** | `PreLookaheadLayer` in the flow encoder: 3-token right context. |
 | **trim_fade** | 40 ms zero + fade-in applied to every S3Gen output start to hide prompt spill-over. |
-| **Perth watermark** | Resemble's imperceptible neural audio watermark (`resemble-perth`), applied to every output. Detect with `perth.PerthImplicitWatermarker().get_watermark`. |
+| **Perth watermark** | Resemble's neural audio watermark (`resemble-perth`). Upstream applied it to every output; this fork has it **off by default** (`watermark=True` to enable). Detect with `perth.PerthImplicitWatermarker().get_watermark`. |
 | **paralinguistic tags** | Bracketed cues like `[laugh]`, `[cough]` understood by Turbo/Nano. |
 | **Turbo / Nano** | GPT-2-medium (350M) and GPT-2-small (110M) T3 variants sharing the meanflow S3Gen; English only. |
 | **Multilingual v2 / v3** | Two T3 checkpoints (`t3_mtl23ls_v2/v3.safetensors`) for 23 languages; same tokenizer/config. |

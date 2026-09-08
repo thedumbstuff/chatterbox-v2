@@ -7,6 +7,7 @@ Usage (from repo root, inside the venv):
     python tests/smoke_generate.py mtl --lang fr --t3 v3
     python tests/smoke_generate.py vc --src in.wav --ref target.wav
     python tests/smoke_generate.py all
+    python tests/smoke_generate.py nano --watermark   # opt-in Perth watermark
 
 Outputs go to syn_out/<variant>[-tag].wav (git-ignored). Exit code 1 on any failure.
 """
@@ -55,13 +56,15 @@ def report(name, wav, sr, t_load, t_gen, extra=""):
         print(f"[{name}] WARNING: clipping (peak {peak:.3f})")
 
 
-def check_watermark(path, sr):
+def check_watermark(path, sr, expected):
+    """Report Perth detector output; expected is 1.0 when watermarking was requested, else 0.0."""
     try:
         import perth
         import librosa
         y, sr2 = librosa.load(str(path), sr=None)
-        wm = perth.PerthImplicitWatermarker().get_watermark(y, sample_rate=sr2)
-        return f"watermark={wm}"
+        wm = float(perth.PerthImplicitWatermarker().get_watermark(y, sample_rate=sr2))
+        ok = "ok" if wm == expected else "MISMATCH"
+        return f"watermark={wm} (expected {expected}: {ok})"
     except Exception as e:  # noqa: BLE001
         return f"watermark_check_failed={type(e).__name__}"
 
@@ -70,7 +73,7 @@ def run_turbo(args, nano):
     from chatterbox.tts_turbo import ChatterboxTurboTTS
     name = "nano" if nano else "turbo"
     t0 = time.time()
-    model = ChatterboxTurboTTS.from_pretrained(device=args.device, nano=nano)
+    model = ChatterboxTurboTTS.from_pretrained(device=args.device, nano=nano, watermark=args.watermark)
     t_load = time.time() - t0
     kwargs = {}
     if args.ref:
@@ -80,14 +83,14 @@ def run_turbo(args, nano):
     t_gen = time.time() - t0
     out = OUT_DIR / f"{name}{args.tag}.wav"
     ta.save(str(out), wav, model.sr)
-    report(name, wav, model.sr, t_load, t_gen, check_watermark(out, model.sr))
+    report(name, wav, model.sr, t_load, t_gen, check_watermark(out, model.sr, 1.0 if args.watermark else 0.0))
     return model
 
 
 def run_english(args):
     from chatterbox.tts import ChatterboxTTS
     t0 = time.time()
-    model = ChatterboxTTS.from_pretrained(device=args.device)
+    model = ChatterboxTTS.from_pretrained(device=args.device, watermark=args.watermark)
     t_load = time.time() - t0
     kwargs = dict(cfg_weight=args.cfg, exaggeration=args.exaggeration, temperature=args.temperature)
     if args.ref:
@@ -97,14 +100,14 @@ def run_english(args):
     t_gen = time.time() - t0
     out = OUT_DIR / f"english{args.tag}.wav"
     ta.save(str(out), wav, model.sr)
-    report("english", wav, model.sr, t_load, t_gen, f"cfg={args.cfg} " + check_watermark(out, model.sr))
+    report("english", wav, model.sr, t_load, t_gen, f"cfg={args.cfg} " + check_watermark(out, model.sr, 1.0 if args.watermark else 0.0))
     return model
 
 
 def run_mtl(args):
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
     t0 = time.time()
-    model = ChatterboxMultilingualTTS.from_pretrained(device=args.device, t3_model=args.t3)
+    model = ChatterboxMultilingualTTS.from_pretrained(device=args.device, t3_model=args.t3, watermark=args.watermark)
     t_load = time.time() - t0
     text = TEXT_BY_LANG.get(args.lang, TEXT_EN)
     kwargs = dict(cfg_weight=args.cfg, exaggeration=args.exaggeration, temperature=args.temperature)
@@ -115,7 +118,7 @@ def run_mtl(args):
     t_gen = time.time() - t0
     out = OUT_DIR / f"mtl-{args.t3 or 'v2'}-{args.lang}{args.tag}.wav"
     ta.save(str(out), wav, model.sr)
-    report(f"mtl-{args.t3 or 'v2'}-{args.lang}", wav, model.sr, t_load, t_gen, check_watermark(out, model.sr))
+    report(f"mtl-{args.t3 or 'v2'}-{args.lang}", wav, model.sr, t_load, t_gen, check_watermark(out, model.sr, 1.0 if args.watermark else 0.0))
     return model
 
 
@@ -124,14 +127,14 @@ def run_vc(args):
     if not args.src:
         raise SystemExit("vc needs --src <source speech wav>")
     t0 = time.time()
-    model = ChatterboxVC.from_pretrained(device=args.device)
+    model = ChatterboxVC.from_pretrained(device=args.device, watermark=args.watermark)
     t_load = time.time() - t0
     t0 = time.time()
     wav = model.generate(args.src, target_voice_path=args.ref)
     t_gen = time.time() - t0
     out = OUT_DIR / f"vc{args.tag}.wav"
     ta.save(str(out), wav, model.sr)
-    report("vc", wav, model.sr, t_load, t_gen, check_watermark(out, model.sr))
+    report("vc", wav, model.sr, t_load, t_gen, check_watermark(out, model.sr, 1.0 if args.watermark else 0.0))
     return model
 
 
@@ -148,6 +151,7 @@ def main():
     p.add_argument("--temperature", type=float, default=0.8)
     p.add_argument("--tag", default="", help="suffix for output filename")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--watermark", action="store_true", help="enable the Perth watermark (off by default in this fork)")
     args = p.parse_args()
     args.device = device_arg(args.device)
     logging.basicConfig(level=logging.WARNING)

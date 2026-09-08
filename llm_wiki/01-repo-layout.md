@@ -29,6 +29,7 @@ chatterbox-v2/
     ├── mtl_tts.py        (355)   # ChatterboxMultilingualTTS: 23 languages, v2/v3 T3 selection
     ├── tts_turbo.py      (320)   # ChatterboxTurboTTS: Turbo + Nano, GPT-2 backbone, meanflow S3Gen
     ├── vc.py             (103)   # ChatterboxVC: S3Gen-only voice conversion
+    ├── watermark.py      (ours)  # optional Perth watermark: get_watermarker(), maybe_watermark(), resolve()
     └── models/
         ├── utils.py      (4)     # AttrDict
         ├── t3/                   # === Stage 1: text -> speech tokens (autoregressive LLM) ===

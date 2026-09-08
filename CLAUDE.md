@@ -18,7 +18,8 @@ Pure-inference PyTorch library in `src/chatterbox/` + example scripts and Gradio
 ## Architecture in one breath
 
 `text → punc_norm → tokenizer → T3 (Llama-520M or GPT-2 LLM) → 25 Hz speech tokens (vocab 6561)
-→ S3Gen (conformer encoder → flow-matching mel decoder → HiFT vocoder) → 24 kHz wav → Perth watermark`.
+→ S3Gen (conformer encoder → flow-matching mel decoder → HiFT vocoder) → 24 kHz wav` (Perth watermark
+is OFF by default in this fork; `watermark=True` re-enables it via `src/chatterbox/watermark.py`).
 Reference audio conditions both stages (VoiceEncoder 256-d + prompt tokens for T3;
 CAMPPlus x-vector + prompt mel/tokens for S3Gen). Batch size 1 everywhere.
 

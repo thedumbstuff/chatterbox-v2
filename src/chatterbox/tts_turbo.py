@@ -5,7 +5,6 @@ from pathlib import Path
 
 import librosa
 import torch
-import perth
 import pyloudnorm as ln
 
 from safetensors.torch import load_file
@@ -20,6 +19,7 @@ from .models.voice_encoder import VoiceEncoder
 from .models.t3.modules.cond_enc import T3Cond
 from .models.t3.modules.t3_config import T3Config
 from .models.s3gen.const import S3GEN_SIL
+from .watermark import get_watermarker, maybe_watermark, resolve as _resolve_wm
 import logging
 logger = logging.getLogger(__name__)
 
@@ -121,6 +121,7 @@ class ChatterboxTurboTTS:
         device: str,
         conds: Conditionals = None,
         model_label: str = "Turbo",
+        watermark: bool = False,
     ):
         self.sr = S3GEN_SR  # sample rate of synthesized audio
         self.t3 = t3
@@ -130,10 +131,15 @@ class ChatterboxTurboTTS:
         self.device = device
         self.conds = conds
         self.model_label = model_label  # "Turbo" or "Nano", used for logging
-        self.watermarker = perth.PerthImplicitWatermarker()
+        self.watermark = watermark  # Perth watermark off by default in this fork (see README)
+
+    @property
+    def watermarker(self):
+        """Backward-compat accessor; constructs the Perth watermarker on first use."""
+        return get_watermarker()
 
     @classmethod
-    def from_local(cls, ckpt_dir, device, nano=False) -> 'ChatterboxTurboTTS':
+    def from_local(cls, ckpt_dir, device, nano=False, watermark: bool = False) -> 'ChatterboxTurboTTS':
         ckpt_dir = Path(ckpt_dir)
 
         # Always load to CPU first for non-CUDA devices to handle CUDA-saved models
@@ -186,10 +192,10 @@ class ChatterboxTurboTTS:
             conds = Conditionals.load(builtin_voice, map_location=map_location).to(device)
 
         return cls(t3, s3gen, ve, tokenizer, device, conds=conds,
-                   model_label="Nano" if nano else "Turbo")
+                   model_label="Nano" if nano else "Turbo", watermark=watermark)
 
     @classmethod
-    def from_pretrained(cls, device, nano=False) -> 'ChatterboxTurboTTS':
+    def from_pretrained(cls, device, nano=False, watermark: bool = False) -> 'ChatterboxTurboTTS':
         # Check if MPS is available on macOS
         if device == "mps" and not torch.backends.mps.is_available():
             if not torch.backends.mps.is_built():
@@ -223,7 +229,7 @@ class ChatterboxTurboTTS:
             else:
                 raise
 
-        return cls.from_local(local_path, device, nano=nano)
+        return cls.from_local(local_path, device, nano=nano, watermark=watermark)
 
     def norm_loudness(self, wav, sr, target_lufs=-27):
         try:
@@ -281,6 +287,7 @@ class ChatterboxTurboTTS:
         temperature=0.8,
         top_k=1000,
         norm_loudness=True,
+        watermark: bool | None = None,
     ):
         if audio_prompt_path:
             self.prepare_conditionals(audio_prompt_path, exaggeration=exaggeration, norm_loudness=norm_loudness)
@@ -316,5 +323,5 @@ class ChatterboxTurboTTS:
             n_cfm_timesteps=2,
         )
         wav = wav.squeeze(0).detach().cpu().numpy()
-        watermarked_wav = self.watermarker.apply_watermark(wav, sample_rate=self.sr)
-        return torch.from_numpy(watermarked_wav).unsqueeze(0)
+        wav = maybe_watermark(wav, self.sr, _resolve_wm(self.watermark, watermark))
+        return torch.from_numpy(wav).unsqueeze(0)

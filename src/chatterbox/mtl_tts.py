@@ -4,7 +4,6 @@ import os
 
 import librosa
 import torch
-import perth
 import torch.nn.functional as F
 from safetensors.torch import load_file as load_safetensors
 from huggingface_hub import snapshot_download
@@ -16,6 +15,7 @@ from .models.s3gen import S3GEN_SR, S3Gen
 from .models.tokenizers import MTLTokenizer
 from .models.voice_encoder import VoiceEncoder
 from .models.t3.modules.cond_enc import T3Cond
+from .watermark import get_watermarker, maybe_watermark, resolve as _resolve_wm
 
 
 REPO_ID = "ResembleAI/chatterbox"
@@ -164,6 +164,7 @@ class ChatterboxMultilingualTTS:
         tokenizer: MTLTokenizer,
         device: str,
         conds: Conditionals = None,
+        watermark: bool = False,
     ):
         self.sr = S3GEN_SR  # sample rate of synthesized audio
         self.t3 = t3
@@ -172,7 +173,12 @@ class ChatterboxMultilingualTTS:
         self.tokenizer = tokenizer
         self.device = device
         self.conds = conds
-        self.watermarker = perth.PerthImplicitWatermarker()
+        self.watermark = watermark  # Perth watermark off by default in this fork (see README)
+
+    @property
+    def watermarker(self):
+        """Backward-compat accessor; constructs the Perth watermarker on first use."""
+        return get_watermarker()
 
     @classmethod
     def get_supported_languages(cls):
@@ -185,6 +191,7 @@ class ChatterboxMultilingualTTS:
         ckpt_dir,
         device,
         t3_model: str | None = None,
+        watermark: bool = False,
     ) -> 'ChatterboxMultilingualTTS':
         ckpt_dir = Path(ckpt_dir)
         t3_model = _resolve_multilingual_t3_model(t3_model)
@@ -222,13 +229,14 @@ class ChatterboxMultilingualTTS:
         if (builtin_voice := ckpt_dir / "conds.pt").exists():
             conds = Conditionals.load(builtin_voice, map_location=map_location).to(device)
 
-        return cls(t3, s3gen, ve, tokenizer, device, conds=conds)
+        return cls(t3, s3gen, ve, tokenizer, device, conds=conds, watermark=watermark)
 
     @classmethod
     def from_pretrained(
         cls,
         device: torch.device,
         t3_model: str | None = None,
+        watermark: bool = False,
     ) -> 'ChatterboxMultilingualTTS':
         # Check if MPS is available on macOS
         if device == "mps" and not torch.backends.mps.is_available():
@@ -248,7 +256,7 @@ class ChatterboxMultilingualTTS:
                 token=os.getenv("HF_TOKEN"),
             )
         )
-        return cls.from_local(ckpt_dir, device, t3_model=t3_model)
+        return cls.from_local(ckpt_dir, device, t3_model=t3_model, watermark=watermark)
     
     def prepare_conditionals(self, wav_fpath, exaggeration=0.5):
         ## Load reference wav
@@ -288,6 +296,7 @@ class ChatterboxMultilingualTTS:
         repetition_penalty=1.2,
         min_p=0.05,
         top_p=1.0,
+        watermark: bool | None = None,
     ):
         # Validate language_id
         if language_id and language_id.lower() not in SUPPORTED_LANGUAGES:
@@ -351,5 +360,5 @@ class ChatterboxMultilingualTTS:
             st_len = max(1, n_tokens - 1)
             wav = wav[: st_len * (S3GEN_SR // S3_TOKEN_RATE)]
 
-            watermarked_wav = self.watermarker.apply_watermark(wav, sample_rate=self.sr)
-        return torch.from_numpy(watermarked_wav).unsqueeze(0)
+            wav = maybe_watermark(wav, self.sr, _resolve_wm(self.watermark, watermark))
+        return torch.from_numpy(wav).unsqueeze(0)

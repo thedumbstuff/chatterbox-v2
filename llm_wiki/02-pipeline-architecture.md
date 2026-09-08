@@ -52,7 +52,7 @@ text ──> punc_norm() ──> tokenizer ──> text_tokens (1, T)  [+ SOT/EO
                                               │
                                               ▼
         (Multilingual only) drop the last token's 960 samples
-        perth watermark -> torch tensor (1, N_samples) @ 24 kHz
+        [optional, off by default] perth watermark -> torch tensor (1, N_samples) @ 24 kHz
 ```
 
 ## Stage boundaries and rates (memorize these)

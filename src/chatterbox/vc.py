@@ -2,12 +2,12 @@ from pathlib import Path
 
 import librosa
 import torch
-import perth
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
 
 from .models.s3tokenizer import S3_SR
 from .models.s3gen import S3GEN_SR, S3Gen
+from .watermark import get_watermarker, maybe_watermark, resolve as _resolve_wm
 
 
 REPO_ID = "ResembleAI/chatterbox"
@@ -22,11 +22,12 @@ class ChatterboxVC:
         s3gen: S3Gen,
         device: str,
         ref_dict: dict=None,
+        watermark: bool = False,
     ):
         self.sr = S3GEN_SR
         self.s3gen = s3gen
         self.device = device
-        self.watermarker = perth.PerthImplicitWatermarker()
+        self.watermark = watermark  # Perth watermark off by default in this fork (see README)
         if ref_dict is None:
             self.ref_dict = None
         else:
@@ -35,8 +36,13 @@ class ChatterboxVC:
                 for k, v in ref_dict.items()
             }
 
+    @property
+    def watermarker(self):
+        """Backward-compat accessor; constructs the Perth watermarker on first use."""
+        return get_watermarker()
+
     @classmethod
-    def from_local(cls, ckpt_dir, device) -> 'ChatterboxVC':
+    def from_local(cls, ckpt_dir, device, watermark: bool = False) -> 'ChatterboxVC':
         ckpt_dir = Path(ckpt_dir)
         
         # Always load to CPU first for non-CUDA devices to handle CUDA-saved models
@@ -56,10 +62,10 @@ class ChatterboxVC:
         )
         s3gen.to(device).eval()
 
-        return cls(s3gen, device, ref_dict=ref_dict)
+        return cls(s3gen, device, ref_dict=ref_dict, watermark=watermark)
 
     @classmethod
-    def from_pretrained(cls, device) -> 'ChatterboxVC':
+    def from_pretrained(cls, device, watermark: bool = False) -> 'ChatterboxVC':
         # Check if MPS is available on macOS
         if device == "mps" and not torch.backends.mps.is_available():
             if not torch.backends.mps.is_built():
@@ -71,7 +77,7 @@ class ChatterboxVC:
         for fpath in ["s3gen.safetensors", "conds.pt"]:
             local_path = hf_hub_download(repo_id=REPO_ID, filename=fpath)
 
-        return cls.from_local(Path(local_path).parent, device)
+        return cls.from_local(Path(local_path).parent, device, watermark=watermark)
 
     def set_target_voice(self, wav_fpath):
         ## Load reference wav
@@ -84,6 +90,7 @@ class ChatterboxVC:
         self,
         audio,
         target_voice_path=None,
+        watermark: bool | None = None,
     ):
         if target_voice_path:
             self.set_target_voice(target_voice_path)
@@ -100,5 +107,5 @@ class ChatterboxVC:
                 ref_dict=self.ref_dict,
             )
             wav = wav.squeeze(0).detach().cpu().numpy()
-            watermarked_wav = self.watermarker.apply_watermark(wav, sample_rate=self.sr)
-        return torch.from_numpy(watermarked_wav).unsqueeze(0)
+            wav = maybe_watermark(wav, self.sr, _resolve_wm(self.watermark, watermark))
+        return torch.from_numpy(wav).unsqueeze(0)

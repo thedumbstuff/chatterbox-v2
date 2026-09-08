@@ -22,7 +22,8 @@ Generated `.wav` files are git-ignored (`**/*.wav`).
     [--lang hi] [--t3 v3] [--cfg 0.5] [--exaggeration 0.5] [--temperature 0.8] [--tag=-suffix] [--seed N]
 ```
 Loads the variant, generates one sentence, saves `syn_out/<variant><tag>.wav`, prints duration,
-timings, RTF, peak amplitude, and whether the Perth watermark is detected. Exit code 1 on failure.
+timings, RTF, peak amplitude, and the Perth detector result against the expectation (0.0 by default,
+1.0 with `--watermark`). Exit code 1 on failure. `tests/bench_watermark.py` A/B-times the watermark per variant.
 Pass `--tag=-x` with `=` (argparse treats a leading `-` value as a flag otherwise).
 Project scope decision (user, 2026-09-08): **test only English and Hindi** for multilingual.
 
